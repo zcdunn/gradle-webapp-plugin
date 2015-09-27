@@ -1,0 +1,51 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+project.with {
+    group = 'edu.clemson'
+    version = '1.0'
+}
+
+configurations {
+    deployerJars
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    deployerJars "org.apache.maven.wagon:wagon-http:2.2"
+
+    compile gradleApi(),
+            localGroovy()
+
+    compile('com.google.javascript:closure-compiler:v20131014') {
+        exclude module: 'junit'
+    }
+
+    compile('com.yahoo.platform.yui:yuicompressor:2.4.7') {
+        exclude module: 'junit'
+    }
+
+}
+
+jar {
+    doFirst {
+        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }     // make a fat jar, we need the dependencies in the jar
+    }
+    exclude "**/*.swp", "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"     // remove the signatures from google and yahoo jars
+}
+
+install.repositories.mavenInstaller.pom.whenConfigured {
+        dependencies = []
+}
+
+uploadArchives.repositories.mavenDeployer {
+    repository(url: "http://hhsldts02.clemson.edu:62836/nexus/content/groups/public")
+    pom {
+        whenConfigured {
+            dependencies = []
+        }
+    }
+}
