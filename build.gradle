@@ -40,12 +40,3 @@ jar {
 install.repositories.mavenInstaller.pom.whenConfigured {
         dependencies = []
 }
-
-uploadArchives.repositories.mavenDeployer {
-    repository(url: "http://hhsldts02.clemson.edu:62836/nexus/content/groups/public")
-    pom {
-        whenConfigured {
-            dependencies = []
-        }
-    }
-}
