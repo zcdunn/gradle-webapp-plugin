@@ -20,10 +20,6 @@ class WebAppPlugin implements Plugin<Project> {
         configureDependencies()
         setup()
         project.afterEvaluate(configure)
-        project.afterEvaluate { proj ->
-            if(proj.webApp.environmentalConfig && proj.ext.environment == proj.webApp.productionEnv)
-                configureForProd()
-        }
     }
 
     void setup() {
@@ -36,11 +32,13 @@ class WebAppPlugin implements Plugin<Project> {
             task('combineCss', type: CombineCssTask, group: 'Build', description: "Combine css files into single file") {}
             task('minifyCss', type: MinifyCssTask, group: 'Build', description: "Minify css using YUI Minifier") {}
             task('jslint', type: JsLintTask, group: 'Verification', description: "Analyze javascript sources with JsLint") {}
+            task('jshint', type: JsHintTask, group: 'Verification', description: "Analyze javascript sources with JsHint") {}
 
             extensions.create(WebAppPluginExtension.NAME, WebAppPluginExtension)
             webApp.extensions.create(ClosureCompilerExtension.NAME, ClosureCompilerExtension)
             webApp.extensions.create(YuiCompressorExtension.NAME, YuiCompressorExtension)
             webApp.extensions.create(JsLintExtension.NAME, JsLintExtension)
+            webApp.extensions.create(JsHintExtension.NAME, JsHintExtension)
 
             // include any jars the users drops in the lib directory
             repositories.flatDir(dirs: 'lib')
@@ -62,17 +60,17 @@ class WebAppPlugin implements Plugin<Project> {
         }
     }
 
-    void configureForProd() {
+    void configureProd() {
         project.with {
             def webappDir = getWebappDir()
 
             combineJs {
+                dependsOn jshint
                 source = fileTree(dir: "${webAppDirName}/js", include: "**/*.js")
                 dest = file("${webappDir}/all.js")
             }
 
             minifyJs {
-                dependsOn jslint
                 source = combineJs
                 dest = file("${webappDir}/${webApp.jsFileName}")
             }
@@ -118,11 +116,12 @@ class WebAppPlugin implements Plugin<Project> {
                 with war
             }
 
-            processResources {
-                dependsOn jslint
-                inputs.property "env", environment
-                outputs.files "${webappDir}/${webApp.jslint.destFilename}"
+            jshint {
+                source = fileTree(dir: "${webAppDirName}/js", include: "**/*.js", exclude: webApp.jshint.excludes)
+                dest = file("${webappDir}/${webApp.jshint.destFile}")
             }
+
+            check.dependsOn jshint
 
             war {
                 exclude "**/*.swp"      // vim creates swp files, but they're not needed in a build
@@ -137,20 +136,19 @@ class WebAppPlugin implements Plugin<Project> {
             }
 
             test.testLogging.exceptionFormat "full"
+            if(webApp.environmentalConfig && ext.environment == webApp.productionEnv)
+                configureProd()
         }
     }
 
     def configureDependencies() {
-        Configuration config = project.configurations.findByName('webApp')
-        if(!config) {
-            project.configurations {
-                webApp
-            }
+        project.configurations {
+            webApp
         }
+
         if(project.configurations.webApp.dependencies.empty) {
-            project.dependencies {
-                webApp(JsLintTask.ANT_JAR)
-            }
+            project.dependencies.webApp(JsLintTask.ANT_JAR)
+            project.dependencies.webApp(RhinoExec.RHINO_DEPENDENCY)
         }
     }
 

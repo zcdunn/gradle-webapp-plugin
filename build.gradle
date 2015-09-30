@@ -28,9 +28,12 @@ dependencies {
         exclude module: 'junit'
     }
 
+    testCompile "junit:junit:4.12"
+
 }
 
 jar {
+    dependsOn test
     doFirst {
         from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }     // make a fat jar, we need the dependencies in the jar
     }
