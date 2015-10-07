@@ -13,7 +13,9 @@ import org.gradle.api.file.*
  */
 
 class WebAppPlugin implements Plugin<Project> {
+    private static final def SPRING = [ groupID: "org.springframework", version: "4.1.6.RELEASE" ]
     private Project project
+    String pluginOutputDir
 
     void apply(Project project) {
         this.project = project
@@ -26,26 +28,29 @@ class WebAppPlugin implements Plugin<Project> {
         project.with {
             apply(plugin: 'war')
 
-            task('explodeWar', type: Copy, description: "Creates a directory with the exploded war content") {}
-            task('combineJs', type: CombineJsTask, group: 'Build', description: "Combine javascript files into single file") {}
-            task('minifyJs', type: MinifyJsTask, group: 'Build', description: "Minify javascript using Closure Compiler") {}
-            task('combineCss', type: CombineCssTask, group: 'Build', description: "Combine css files into single file") {}
-            task('minifyCss', type: MinifyCssTask, group: 'Build', description: "Minify css using YUI Minifier") {}
-            task('jslint', type: JsLintTask, group: 'Verification', description: "Analyze javascript sources with JsLint") {}
-            task('jshint', type: JsHintTask, group: 'Verification', description: "Analyze javascript sources with JsHint") {}
-
             extensions.create(WebAppPluginExtension.NAME, WebAppPluginExtension)
             webApp.extensions.create(ClosureCompilerExtension.NAME, ClosureCompilerExtension)
             webApp.extensions.create(YuiCompressorExtension.NAME, YuiCompressorExtension)
             webApp.extensions.create(JsLintExtension.NAME, JsLintExtension)
             webApp.extensions.create(JsHintExtension.NAME, JsHintExtension)
+            webApp.extensions.create(AppcacheExtension.NAME, AppcacheExtension)
+
+            task('explodeWar', type: Copy, description: "Creates a directory with the exploded war content") {}
+            task('combineJs', type: CombineJsTask, group: 'Build', description: "Combine javascript files into single file") {}
+            task('minifyJs', type: MinifyJsTask, group: 'Build', description: "Minify javascript using Closure Compiler") {}
+            task('combineCss', type: CombineCssTask, group: 'Build', description: "Combine css files into single file") {}
+            task('minifyCss', type: MinifyCssTask, group: 'Build', description: "Minify css using YUI Minifier") {}
+            task('appcache', type: CreateAppcacheManifestTask, group: 'Build', description: "Creates html cache manifest", dependsOn: 'explodeWar') {}
+            task('jslint', type: JsLintTask, group: 'Verification', description: "Analyze javascript sources with JsLint") {}
+            task('jshint', type: JsHintTask, group: 'Verification', description: "Analyze javascript sources with JsHint") {}
 
             // include any jars the users drops in the lib directory
             repositories.flatDir(dirs: 'lib')
             dependencies.add('compile', fileTree(dir: 'src/main/webapp/WEB-INF/lib', include: '*.jar'))
 
-            ext.spring = [ groupID: "org.springframework", version: "4.1.6.RELEASE" ]
+            ext.spring = SPRING
         }
+        pluginOutputDir = "${project.buildDir}/${project.webApp.webappPluginDir}"
     }
 
     void loadConfiguration() {
@@ -55,62 +60,53 @@ class WebAppPlugin implements Plugin<Project> {
             println "Environment is set to $env"
 
         project.ext.with {
-            environment = project.webApp.environmentalConfig ? env : "none"
+            environment = env
             config = project.webApp.environmentalConfig ? new ConfigSlurper(env).parse(configFile.toURL()) : [:]
+            config.inProd = env == project.webApp.productionEnv
         }
     }
 
     void configureProd() {
         project.with {
-            def webappDir = getWebappDir()
-
             combineJs {
                 dependsOn jshint
                 source = fileTree(dir: "${webAppDirName}/js", include: "**/*.js")
-                dest = file("${webappDir}/all.js")
+                dest = file("${pluginOutputDir}/all.js")
             }
 
             minifyJs {
                 source = combineJs
-                dest = file("${webappDir}/${webApp.jsFileName}")
+                dest = file("${pluginOutputDir}/${webApp.jsFileName}")
             }
 
             combineCss {
                 source = fileTree(dir: "${webAppDirName}/css", include: "**/*.css")
-                dest = file("${webappDir}/all.css")
+                dest = file("${pluginOutputDir}/all.css")
             }
 
             minifyCss {
                 source = combineCss
-                dest = file("${webappDir}/${webApp.cssFileName}")
+                dest = file("${pluginOutputDir}/${webApp.cssFileName}")
             }
 
             processResources {
                 dependsOn minifyJs
                 dependsOn minifyCss
-                outputs.files "${webappDir}/${webApp.jsFileName}", "${webappDir}/${webApp.cssFileName}"
             }
 
             war {
-                include "manifest.appcache"
+                dependsOn appcache
                 exclude "js/*.js", "css/*.css"
-                from("${webappDir}/${webApp.jsFileName}") {
-                    into "js"
-                }
-                from("${webappDir}/${webApp.cssFileName}") {
-                    into "css"
-                }
-                filesMatching("*.appcache") {
-                    expand("date": new Date())
-                }
+                from("${pluginOutputDir}/${webApp.jsFileName}")  { into "js" }
+                from("${pluginOutputDir}/${webApp.cssFileName}") { into "css" }
+                from "${pluginOutputDir}/${webApp.appcache.destFile}"
             }
         }
     }
 
-    def configure = { project ->
+    def configure = {
         project.with {
             loadConfiguration()
-            def webappDir = getWebappDir()
             explodeWar {
                 into "${buildDir}/${webApp.explodeDir}"
                 with war
@@ -118,25 +114,25 @@ class WebAppPlugin implements Plugin<Project> {
 
             jshint {
                 source = fileTree(dir: "${webAppDirName}/js", include: "**/*.js", exclude: webApp.jshint.excludes)
-                dest = file("${webappDir}/${webApp.jshint.destFile}")
+                dest = file("${pluginOutputDir}/${webApp.jshint.destFile}")
             }
 
             check.dependsOn jshint
 
             war {
                 exclude "**/*.swp"      // vim creates swp files, but they're not needed in a build
-                exclude "manifest.appcache"
-
                 if(webApp.explode)
                     dependsOn explodeWar
 
-                filesMatching("**/*.xml") {
-                    expand(config)
+                if(webApp.environmentalConfig) {
+                    filesMatching(webApp.expandFiles) {
+                        expand(config)
+                    }
                 }
             }
 
             test.testLogging.exceptionFormat "full"
-            if(webApp.environmentalConfig && ext.environment == webApp.productionEnv)
+            if(ext.environment == webApp.productionEnv)
                 configureProd()
         }
     }
@@ -150,9 +146,5 @@ class WebAppPlugin implements Plugin<Project> {
             project.dependencies.webApp(JsLintTask.ANT_JAR)
             project.dependencies.webApp(RhinoExec.RHINO_DEPENDENCY)
         }
-    }
-
-    def getWebappDir() {
-        "${project.buildDir}/${project.webApp.webappPluginDir}"
     }
 }

@@ -8,11 +8,12 @@ class WebAppPluginExtension {
     @Input String productionEnv = 'prod'
     @Input String configFileName = "envConfig.groovy"
     @Input String explodeDir = "explodedWar"
-    @Input String webappPluginDir = "webapp"
+    @Input String webappPluginDir = "webappTemp"
     @Input String jsFileName = "all-min.js"
     @Input String cssFileName = "all-min.css"
     @Input boolean environmentalConfig = true
     @Input boolean explode = true
+    @Input def expandFiles = "**/*.xml"
 
     // helper methods to match gradle dsl
     def defaultEnv(String defaultEnv) { this.defaultEnv = defaultEnv }
@@ -24,4 +25,5 @@ class WebAppPluginExtension {
     def cssFileName(String cssFileName) { this.cssFileName = cssFileName }
     def environmentalConfig(boolean environmentalConfig) { this.environmentalConfig = environmentalConfig }
     def explode(boolean explode) { this.explode = explode }
+    def expandFiles(def expandFiles) { this.expandFiles = expandFiles }
 }

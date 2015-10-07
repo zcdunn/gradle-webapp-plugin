@@ -12,9 +12,7 @@ class CombineCssTask extends SourceTask {
     @TaskAction
     def run() {
         ant.concat(destfile: (dest as File).canonicalPath, fixlastline: 'yes') {
-            source.files.each {
-                fileset(file: it)
-            }
+            source.files.each { fileset(file: it) }
         }
     }
     

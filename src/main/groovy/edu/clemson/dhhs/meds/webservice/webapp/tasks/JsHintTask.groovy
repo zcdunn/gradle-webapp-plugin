@@ -34,8 +34,11 @@ class JsHintTask extends SourceTask {
                 throw new ResourceException("There was an error in the javascript source. See ${dest} for more info.")
         }
         finally {
-            if(jshintExt.outputToStdout) 
-                println project.file(dest).text
+            if(jshintExt.outputToStdout) {
+                def text = project.file(dest).text
+                if(text)
+                    println text
+            }
         }
     }
 
