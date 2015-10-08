@@ -5,17 +5,11 @@ project.with {
     version = '1.0'
 }
 
-configurations {
-    deployerJars
-}
-
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    deployerJars "org.apache.maven.wagon:wagon-http:2.2"
-
     compile gradleApi(),
             localGroovy()
 

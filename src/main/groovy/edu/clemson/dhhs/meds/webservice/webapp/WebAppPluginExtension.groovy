@@ -13,7 +13,7 @@ class WebAppPluginExtension {
     @Input String cssFileName = "all-min.css"
     @Input boolean environmentalConfig = true
     @Input boolean explode = true
-    @Input def expandFiles = "**/*.xml"
+    @Input List expandFiles = []
 
     // helper methods to match gradle dsl
     def defaultEnv(String defaultEnv) { this.defaultEnv = defaultEnv }
@@ -25,5 +25,6 @@ class WebAppPluginExtension {
     def cssFileName(String cssFileName) { this.cssFileName = cssFileName }
     def environmentalConfig(boolean environmentalConfig) { this.environmentalConfig = environmentalConfig }
     def explode(boolean explode) { this.explode = explode }
-    def expandFiles(def expandFiles) { this.expandFiles = expandFiles }
+    def expandFiles(String expandFiles) { this.expandFiles << expandFiles }
+    def expandFiles(String.. expandFiles) { this.expandFiles.addAll(expandFiles) }
 }

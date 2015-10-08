@@ -63,6 +63,7 @@ class WebAppPlugin implements Plugin<Project> {
             environment = env
             config = project.webApp.environmentalConfig ? new ConfigSlurper(env).parse(configFile.toURL()) : [:]
             config.inProd = env == project.webApp.productionEnv
+            config.env = env
         }
     }
 
@@ -124,9 +125,18 @@ class WebAppPlugin implements Plugin<Project> {
                 if(webApp.explode)
                     dependsOn explodeWar
 
-                if(webApp.environmentalConfig) {
-                    filesMatching(webApp.expandFiles) {
+                if(!webApp.expandFiles) {
+                    println "Expanding all xml files"
+                    filesMatching("**/*.xml") {
                         expand(config)
+                    }
+                }
+                else {
+                    println "Expanding each pattern"
+                    webApp.expandFiles.each { String pattern ->
+                        filesMatching(pattern) {
+                            expand(config)
+                        }
                     }
                 }
             }
