@@ -7,11 +7,6 @@ import org.gradle.api.artifacts.*
 import org.gradle.api.tasks.*
 import org.gradle.api.file.*
 
-/*
- * Maybe add jsp compilation 
- * https://discuss.gradle.org/t/can-i-compile-jsp-using-gradle/3523
- */
-
 class WebAppPlugin implements Plugin<Project> {
     private static final def SPRING = [ groupID: "org.springframework", version: "4.1.6.RELEASE" ]
     private Project project
@@ -21,49 +16,46 @@ class WebAppPlugin implements Plugin<Project> {
         this.project = project
         configureDependencies()
         setup()
-        project.afterEvaluate(configure)
+        project.afterEvaluate configure
     }
 
     void setup() {
         project.with {
-            apply(plugin: 'war')
+            apply plugin: 'war'
 
-            extensions.create(WebAppPluginExtension.NAME, WebAppPluginExtension)
-            webApp.extensions.create(ClosureCompilerExtension.NAME, ClosureCompilerExtension)
-            webApp.extensions.create(YuiCompressorExtension.NAME, YuiCompressorExtension)
-            webApp.extensions.create(JsLintExtension.NAME, JsLintExtension)
-            webApp.extensions.create(JsHintExtension.NAME, JsHintExtension)
-            webApp.extensions.create(AppcacheExtension.NAME, AppcacheExtension)
+            extensions.create WebAppPluginExtension.NAME, WebAppPluginExtension
+            webApp.extensions.create ClosureCompilerExtension.NAME, ClosureCompilerExtension
+            webApp.extensions.create YuiCompressorExtension.NAME, YuiCompressorExtension
+            webApp.extensions.create JsLintExtension.NAME, JsLintExtension
+            webApp.extensions.create JsHintExtension.NAME, JsHintExtension
+            webApp.extensions.create AppcacheExtension.NAME, AppcacheExtension
 
-            task('explodeWar', type: Copy, description: "Creates a directory with the exploded war content") {}
-            task('combineJs', type: CombineJsTask, group: 'Build', description: "Combine javascript files into single file") {}
-            task('minifyJs', type: MinifyJsTask, group: 'Build', description: "Minify javascript using Closure Compiler") {}
-            task('combineCss', type: CombineCssTask, group: 'Build', description: "Combine css files into single file") {}
-            task('minifyCss', type: MinifyCssTask, group: 'Build', description: "Minify css using YUI Minifier") {}
-            task('appcache', type: CreateAppcacheManifestTask, group: 'Build', description: "Creates html cache manifest", dependsOn: 'explodeWar') {}
-            task('jslint', type: JsLintTask, group: 'Verification', description: "Analyze javascript sources with JsLint") {}
-            task('jshint', type: JsHintTask, group: 'Verification', description: "Analyze javascript sources with JsHint") {}
+            task 'explodeWar', type: Copy, description: "Creates a directory with the exploded war content", {}
+            task 'combineJs', type: CombineJsTask, group: 'Build', description: "Combine javascript files into single file", {}
+            task 'minifyJs', type: MinifyJsTask, group: 'Build', description: "Minify javascript using Closure Compiler", {}
+            task 'combineCss', type: CombineCssTask, group: 'Build', description: "Combine css files into single file", {}
+            task 'minifyCss', type: MinifyCssTask, group: 'Build', description: "Minify css using YUI Minifier", {}
+            task 'appcache', type: CreateAppcacheManifestTask, group: 'Build', description: "Creates html cache manifest", dependsOn: 'explodeWar', {}
+            task 'jslint', type: JsLintTask, group: 'Verification', description: "Analyze javascript sources with JsLint", {}
+            task 'jshint', type: JsHintTask, group: 'Verification', description: "Analyze javascript sources with JsHint", {}
 
             // include any jars the users drops in the lib directory
-            repositories.flatDir(dirs: 'lib')
-            dependencies.add('compile', fileTree(dir: 'src/main/webapp/WEB-INF/lib', include: '*.jar'))
+            repositories.flatDir dirs: 'lib'
+            dependencies.add 'compile', fileTree(dir: 'src/main/webapp/WEB-INF/lib', include: '*.jar')
 
             ext.spring = SPRING
         }
-        pluginOutputDir = "${project.buildDir}/${project.webApp.webappPluginDir}"
     }
 
-    void loadConfiguration() {
+    void loadConfigurationFile() {
         def env = project.hasProperty('env') ? project.env : project.webApp.defaultEnv
         def configFile = project.file(project.webApp.configFileName)
-        if(project.webApp.environmentalConfig)
-            println "Environment is set to $env"
+        println "Environment is set to $env"
 
         project.ext.with {
-            environment = env
-            config = project.webApp.environmentalConfig ? new ConfigSlurper(env).parse(configFile.toURL()) : [:]
-            config.inProd = env == project.webApp.productionEnv
+            config = project.webApp.loadEnvConfigFile ? new ConfigSlurper(env).parse(configFile.toURL()) : [:]
             config.env = env
+            it.env = env
         }
     }
 
@@ -106,8 +98,9 @@ class WebAppPlugin implements Plugin<Project> {
     }
 
     def configure = {
+        pluginOutputDir = "${project.buildDir}/${project.webApp.webappPluginDir}"
         project.with {
-            loadConfiguration()
+            loadConfigurationFile()
             explodeWar {
                 into "${buildDir}/${webApp.explodeDir}"
                 with war
@@ -126,23 +119,17 @@ class WebAppPlugin implements Plugin<Project> {
                     dependsOn explodeWar
 
                 if(!webApp.expandFiles) {
-                    println "Expanding all xml files"
-                    filesMatching("**/*.xml") {
-                        expand(config)
-                    }
+                    filesMatching("**/*.xml") { expand config }
                 }
                 else {
-                    println "Expanding each pattern"
                     webApp.expandFiles.each { String pattern ->
-                        filesMatching(pattern) {
-                            expand(config)
-                        }
+                        filesMatching(pattern) { expand config }
                     }
                 }
             }
 
             test.testLogging.exceptionFormat "full"
-            if(ext.environment == webApp.productionEnv)
+            if(env == webApp.productionEnv)
                 configureProd()
         }
     }

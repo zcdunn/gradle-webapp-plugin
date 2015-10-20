@@ -12,7 +12,7 @@ class RhinoExec {
         this.project = project
     }
 
-    int execute(final Iterable<String> execargs, final Map<String, Object> options = [:]) {
+    int execute(final Map options = [:], final Iterable<String> execargs) {
         ExecResult result = project.javaexec {
             main = RHINO_MAIN_CLASS
             classpath = project.configurations.webApp
@@ -20,8 +20,7 @@ class RhinoExec {
             workingDir = options.get('workingDir', '.')
             ignoreExitValue = options.get('ignoreExitCode', true).asBoolean()
             standardOutput = options.get('out', System.out) as OutputStream
-            if(options.containsKey(maxHeapSize))
-                maxHeapSize = options.maxHeapSize
+            maxHeapSize = options.get('maxHeapSize', null)
         }
 
         result.exitValue

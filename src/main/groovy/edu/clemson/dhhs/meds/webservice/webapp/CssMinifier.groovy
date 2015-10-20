@@ -29,5 +29,11 @@ class CssMinifier {
             }
         }
     }
-    
+
+    void idomaticMinifyCssFile(final File inputFile, final File outputFile, final Integer lineBreakPos) {
+        new FileInputStream(inputFile).withReader(CHARSET) { reader ->
+            compressor = new CssCompressor(reader)
+            new FileOutputStream(outputFile).withWriter(CHARSET) { writer -> compressor.compress(writer, lineBreakPos) }
+        }
+    }
 }

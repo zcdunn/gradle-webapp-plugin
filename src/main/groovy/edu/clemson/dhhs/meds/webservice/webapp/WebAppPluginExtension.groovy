@@ -11,7 +11,7 @@ class WebAppPluginExtension {
     @Input String webappPluginDir = "webappTemp"
     @Input String jsFileName = "all-min.js"
     @Input String cssFileName = "all-min.css"
-    @Input boolean environmentalConfig = true
+    @Input boolean loadEnvConfigFile = true
     @Input boolean explode = true
     @Input List expandFiles = []
 
@@ -23,8 +23,8 @@ class WebAppPluginExtension {
     def webappPluginDir(String webappPluginDir) { this.webappPluginDir = webappPluginDir }
     def jsFileName(String jsFileName) { this.jsFileName = jsFileName }
     def cssFileName(String cssFileName) { this.cssFileName = cssFileName }
-    def environmentalConfig(boolean environmentalConfig) { this.environmentalConfig = environmentalConfig }
+    def loadEnvConfigFile(boolean loadEnvConfigFile) { this.loadEnvConfigFile = loadEnvConfigFile }
     def explode(boolean explode) { this.explode = explode }
     def expandFiles(String expandFiles) { this.expandFiles << expandFiles }
-    def expandFiles(String.. expandFiles) { this.expandFiles.addAll(expandFiles) }
+    def expandFiles(String... expandFiles) { this.expandFiles.addAll(expandFiles) }
 }

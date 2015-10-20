@@ -20,7 +20,7 @@ class WebAppPluginTest {
     final def WEBAPP_PLUGIN_DIR = "webappTemp"
     final def JS_FILENAME = "all-min.js"
     final def CSS_FILENAME = "all-min.css"
-    final def ENVIRONMENTAL_CONFIG = true
+    final def LOAD_ENV_CONFIG_FILE = true
     final def EXPLODE = true
 
     Project project
@@ -65,7 +65,7 @@ class WebAppPluginTest {
         assertTrue(project.webApp.webappPluginDir == WEBAPP_PLUGIN_DIR)
         assertTrue(project.webApp.jsFileName == JS_FILENAME)
         assertTrue(project.webApp.cssFileName == CSS_FILENAME)
-        assertTrue(project.webApp.environmentalConfig == ENVIRONMENTAL_CONFIG)
+        assertTrue(project.webApp.loadEnvConfigFile == LOAD_ENV_CONFIG_FILE)
         assertTrue(project.webApp.explode == EXPLODE)
     }
 

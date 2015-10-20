@@ -20,15 +20,11 @@ class JsHintTask extends SourceTask {
         final File jshintJsFile = extractFileToDirectory(project.file("${project.buildDir}/${project.webApp.webappPluginDir}"), JSHINT_PATH) 
         final List<String> args = [ jshintJsFile.canonicalPath ] + source.files.collect { it.canonicalPath }
 
-        def optionsArgs = makeOptionsArg(jshintExt.options + jshintExt.predef)
-        if(optionsArgs)
-            args << optionsArgs
+        def optionsArg = makeOptionsArg(jshintExt.options + jshintExt.predef)
+        if(optionsArg)
+            args << optionsArg
 
-        def optionsList = [
-            ignoreExitCode: true,
-            out: new FileOutputStream(dest as File)
-        ]
-        def exitValue = rhino.execute(args, optionsList)
+        def exitValue = rhino.execute(args, out: new FileOutputStream(dest as File))
         try {
             if(!jshintExt.ignoreExitCode && exitValue != 0)
                 throw new ResourceException("There was an error in the javascript source. See ${dest} for more info.")
