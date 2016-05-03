@@ -18,5 +18,6 @@ class JsHintExtension {
     def destFile(def destFile) { this.destFile = destFile }
 
     def excludes(String excludes) { this.excludes << excludes }
-    def excludes(List excludes) { this.excludes + excludes }
+    def excludes(List excludes) { this.excludes.addAll(excludes) }
+    def excludes(String... excludes) { this.excludes.addAll(excludes) }
 }

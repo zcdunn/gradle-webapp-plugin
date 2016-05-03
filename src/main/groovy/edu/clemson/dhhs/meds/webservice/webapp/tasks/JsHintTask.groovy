@@ -11,13 +11,13 @@ class JsHintTask extends SourceTask {
     private static final String JSHINT_PATH = 'jshint-rhino-2.4.3.js'
     private final RhinoExec rhino = new RhinoExec(project)
 
-    @InputFiles def inputs = source
+    @InputFiles def inputSources = source
     @OutputFile def dest
 
     @TaskAction
     def run() {
         def jshintExt = project.webApp.jshint
-        final File jshintJsFile = extractFileToDirectory(project.file("${project.buildDir}/${project.webApp.webappPluginDir}"), JSHINT_PATH) 
+        final File jshintJsFile = extractFileToDirectory(project.file("${project.buildDir}/${project.webApp.webappPluginDir}"), JSHINT_PATH)
         final List<String> args = [ jshintJsFile.canonicalPath ] + source.files.collect { it.canonicalPath }
 
         def optionsArg = makeOptionsArg(jshintExt.options + jshintExt.predef)
@@ -58,7 +58,7 @@ class JsHintTask extends SourceTask {
         if(!file.exists()) {
             final InputStream inputStream = Thread.currentThread().contextClassLoader.getResourceAsStream(resourcePath)
             file << inputStream
-            inputStream.close()
+            if(inputStream) inputStream.close()
         }
         return file
     }

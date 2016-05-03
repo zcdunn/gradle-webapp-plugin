@@ -10,4 +10,9 @@ class ClosureCompilerExtension {
     @Input String compilationLevel = 'SIMPLE_OPTIMIZATIONS'
     @Input String warningLevel = 'QUIET'
     @Input FileCollection externs = null
+    @Input List<String> excludes = []
+
+    def excludes(String exclude) { this.excludes << exclude }
+    def excludes(List excludes) { this.excludes.addAll(excludes) }
+    def excludes(String... excludes) { this.excludes.addAll(excludes) }
 }

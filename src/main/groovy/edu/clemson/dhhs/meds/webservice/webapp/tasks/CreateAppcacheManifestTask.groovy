@@ -7,8 +7,9 @@ import org.gradle.api.file.*
 class CreateAppcacheManifestTask extends DefaultTask {
     final String explodeDir = "${project.buildDir}/${project.webApp.explodeDir}"
 
-    @Input def js = project.files("${explodeDir}/js/${project.webApp.appcache.js}")
-    @Input def css = project.files("${explodeDir}/css/${project.webApp.appcache.css}")
+    @Input def js = project.files("${explodeDir}/js/${project.webApp.jsFileName}")
+    @Input def css = project.files("${explodeDir}/css/${project.webApp.cssFileName}")
+    @Input def sourceMap = project.files("${explodeDir}/js/${project.webApp.jsSourceMap}")
     @Input def images = project.fileTree("${explodeDir}/images/")
     @Input def fonts = project.fileTree("${explodeDir}/fonts/")
     @Input def network = project.webApp.appcache.network
@@ -18,7 +19,7 @@ class CreateAppcacheManifestTask extends DefaultTask {
     @TaskAction
     def run() {
         def date = new Date()
-        def cacheFiles = project.files(js, css, images, fonts)
+        def cacheFiles = project.files(js, css, sourceMap, images, fonts)
 
         dest.text = """CACHE MANIFEST
 # ${date}

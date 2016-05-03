@@ -15,13 +15,10 @@ import static org.junit.Assert.*
 class WebAppPluginTest {
     final def DEFAULT_ENV = "dev"
     final def PRODUCTION_ENV = "prod"
-    final def CONFIG_FILE_NAME = "envConfig.groovy"
     final def EXPLODE_DIR = "explodedWar"
-    final def WEBAPP_PLUGIN_DIR = "webappTemp"
+    final def WEBAPP_PLUGIN_DIR = "webAppTemp"
     final def JS_FILENAME = "all-min.js"
     final def CSS_FILENAME = "all-min.css"
-    final def LOAD_ENV_CONFIG_FILE = true
-    final def EXPLODE = true
 
     Project project
     WebAppPlugin plugin
@@ -60,13 +57,10 @@ class WebAppPluginTest {
     void testExtenstionsDefaults() {
         assertTrue(project.webApp.defaultEnv == DEFAULT_ENV)
         assertTrue(project.webApp.productionEnv == PRODUCTION_ENV)
-        assertTrue(project.webApp.configFileName == CONFIG_FILE_NAME)
         assertTrue(project.webApp.explodeDir == EXPLODE_DIR)
         assertTrue(project.webApp.webappPluginDir == WEBAPP_PLUGIN_DIR)
         assertTrue(project.webApp.jsFileName == JS_FILENAME)
         assertTrue(project.webApp.cssFileName == CSS_FILENAME)
-        assertTrue(project.webApp.loadEnvConfigFile == LOAD_ENV_CONFIG_FILE)
-        assertTrue(project.webApp.explode == EXPLODE)
     }
 
     @Test

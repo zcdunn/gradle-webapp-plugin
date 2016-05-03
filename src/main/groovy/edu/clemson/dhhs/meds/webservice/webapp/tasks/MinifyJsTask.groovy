@@ -11,6 +11,7 @@ class MinifyJsTask extends SourceTask {
 
     @OutputFile def dest
     @Optional @OutputFile def sourceMap
+    @Optional def sourceMappingUrlPrefix
 
     File getDest() {
         project.file(dest)
@@ -20,7 +21,11 @@ class MinifyJsTask extends SourceTask {
     def run() {
         def closureCompiler = project.webApp.closure
         Set<File> externsFiles = closureCompiler.externs ? closureCompiler.externs.files : [] as Set<File>
-        MINIFIER.minifyJsFile(source.files, externsFiles, dest as File, sourceMap as File,
+        def destFile = dest as File
+        MINIFIER.minifyJsFile(source.files, externsFiles, destFile, sourceMap as File,
                               closureCompiler.compilerOptions, closureCompiler.warningLevel, closureCompiler.compilationLevel)
+
+        // add sourceMappingURL
+        destFile << "\n//# sourceMappingURL=${sourceMappingUrlPrefix}${sourceMap.name}"
     }
 }

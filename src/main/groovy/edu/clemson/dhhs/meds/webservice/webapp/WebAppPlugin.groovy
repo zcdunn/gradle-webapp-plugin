@@ -8,18 +8,18 @@ import org.gradle.api.tasks.*
 import org.gradle.api.file.*
 
 class WebAppPlugin implements Plugin<Project> {
-    private static final def SPRING = [ groupID: "org.springframework", version: "4.1.6.RELEASE" ]
     private Project project
-    String pluginOutputDir
+    private String pluginOutputDir
 
     void apply(Project project) {
         this.project = project
         configureDependencies()
-        setup()
+        createExtensionsAndTasks()
         project.afterEvaluate configure
+        setupCompilationGroups()
     }
 
-    void setup() {
+    void createExtensionsAndTasks() {
         project.with {
             apply plugin: 'war'
 
@@ -42,20 +42,6 @@ class WebAppPlugin implements Plugin<Project> {
             // include any jars the users drops in the lib directory
             repositories.flatDir dirs: 'lib'
             dependencies.add 'compile', fileTree(dir: 'src/main/webapp/WEB-INF/lib', include: '*.jar')
-
-            ext.spring = SPRING
-        }
-    }
-
-    void loadConfigurationFile() {
-        def env = project.hasProperty('env') ? project.env : project.webApp.defaultEnv
-        def configFile = project.file(project.webApp.configFileName)
-        println "Environment is set to $env"
-
-        project.ext.with {
-            config = project.webApp.loadEnvConfigFile ? new ConfigSlurper(env).parse(configFile.toURL()) : [:]
-            config.env = env
-            it.env = env
         }
     }
 
@@ -63,13 +49,15 @@ class WebAppPlugin implements Plugin<Project> {
         project.with {
             combineJs {
                 dependsOn jshint
-                source = fileTree(dir: "${webAppDirName}/js", include: "**/*.js")
+                source = fileTree(dir: "${webAppDirName}/js", include: "**/*.js", excludes: webApp.closure.excludes)
                 dest = file("${pluginOutputDir}/all.js")
             }
 
             minifyJs {
                 source = combineJs
                 dest = file("${pluginOutputDir}/${webApp.jsFileName}")
+                sourceMap = file("${pluginOutputDir}/${webApp.jsSourceMap}")
+                sourceMappingUrlPrefix = "${webApp.jsSourceMappingUrlPrefix}"
             }
 
             combineCss {
@@ -91,16 +79,20 @@ class WebAppPlugin implements Plugin<Project> {
                 dependsOn appcache
                 exclude "js/*.js", "css/*.css"
                 from("${pluginOutputDir}/${webApp.jsFileName}")  { into "js" }
+                from("${pluginOutputDir}/${webApp.jsSourceMap}") { into "js" }
                 from("${pluginOutputDir}/${webApp.cssFileName}") { into "css" }
                 from "${pluginOutputDir}/${webApp.appcache.destFile}"
             }
         }
     }
 
-    def configure = {
-        pluginOutputDir = "${project.buildDir}/${project.webApp.webappPluginDir}"
-        project.with {
-            loadConfigurationFile()
+    def configure = { proj ->
+        pluginOutputDir = "${proj.buildDir}/${proj.webApp.webappPluginDir}"
+        def currentEnv = proj.hasProperty('env') ? proj.env : proj.webApp.defaultEnv;
+        proj.ext.config = [ env: currentEnv ]
+        println "Environment is set to $currentEnv"
+
+        proj.with {
             explodeWar {
                 into "${buildDir}/${webApp.explodeDir}"
                 with war
@@ -115,21 +107,16 @@ class WebAppPlugin implements Plugin<Project> {
 
             war {
                 exclude "**/*.swp"      // vim creates swp files, but they're not needed in a build
-                if(webApp.explode)
+                if(webApp.explodeDir)
                     dependsOn explodeWar
 
-                if(!webApp.expandFiles) {
-                    filesMatching("**/*.xml") { expand config }
-                }
-                else {
-                    webApp.expandFiles.each { String pattern ->
-                        filesMatching(pattern) { expand config }
-                    }
+                webApp.expandFiles.each { String pattern ->
+                    filesMatching(pattern) { expand config }
                 }
             }
 
             test.testLogging.exceptionFormat "full"
-            if(env == webApp.productionEnv)
+            if(currentEnv == webApp.productionEnv)
                 configureProd()
         }
     }
@@ -143,5 +130,9 @@ class WebAppPlugin implements Plugin<Project> {
             project.dependencies.webApp(JsLintTask.ANT_JAR)
             project.dependencies.webApp(RhinoExec.RHINO_DEPENDENCY)
         }
+    }
+
+    def setupCompilationGroups() {
+        project.convention.plugins.webApp = new WebAppPluginConvention()
     }
 }

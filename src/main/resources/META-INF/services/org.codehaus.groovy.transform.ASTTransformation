@@ -1,0 +1,2 @@
+# global transformation for AST Builder
+org.codehaus.groovy.ast.builder.AstBuilderTransformation
